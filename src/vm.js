@@ -1,5 +1,4 @@
 const { NodeVM } = require("vm2")
-const fs = require("fs")
 
 const createProxy = (name, fns) => new Proxy(() => {}, {
 	get(target, prop, receiver) {
@@ -21,7 +20,7 @@ const createProxy = (name, fns) => new Proxy(() => {}, {
 
 const FAKE_APP_DATA = "C:\\users\\me\\AppData"
 
-const vm = new NodeVM({
+module.exports = new NodeVM({
 	console: "inherit",
 	sandbox: { },
 	require: {
@@ -111,12 +110,3 @@ const vm = new NodeVM({
 		localappdata: FAKE_APP_DATA
 	})
 })
-
-const script = fs.readFileSync("/srv/two/obfuscated.js")
-
-process.on('uncaughtException', (err) => {
-	console.error(err);
-})
-
-vm.run(script.toString())
-
