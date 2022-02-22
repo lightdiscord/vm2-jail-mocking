@@ -1,0 +1,22 @@
+{
+  "name": "vm2-jail-mocking",
+  "version": "0.1.0",
+  "description": "A quick and dirty experiment to log things done by some JavaScript code",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lightdiscord/vm2-jail-mocking.git"
+  },
+  "author": "Arnaud Pascal <root@arnaud.sh>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/lightdiscord/vm2-jail-mocking/issues"
+  },
+  "homepage": "https://github.com/lightdiscord/vm2-jail-mocking#readme",
+  "dependencies": {
+    "vm2": "^3.9.8"
+  }
+}

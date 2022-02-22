@@ -1,129 +1,121 @@
 const { NodeVM } = require("vm2")
 const fs = require("fs")
 
-const createProxy = (name, fns) => new Proxy(() => {
-	console.log("ignored")
-}, {
+const createProxy = (name, fns) => new Proxy(() => {}, {
 	get(target, prop, receiver) {
-		console.log(`[${name}] get`, prop)
-
-		if (fns) {
-			if (fns[prop]) {
-				return function() {
-					console.log(`[${name}] calling`, prop)
-					return fns[prop](...arguments)
-				}
-			}
-			return function() {
-				console.log(`[${name}] calling`, prop)
-				return fns(...arguments)
-			}
+		if (fns && fns[prop]) {
+			return fns[prop]
 		}
+
+		console.log(`[${name}] missed get`, prop)
+
+		return createProxy(`${name}.${prop}.missed`)
 	},
 
-	apply() {
-		console.log("ptdrlol")
+	apply(target, that, args) {
+		console.log(`[${name}]`, args)
 
+		return createProxy(`${name}.apply`)
 	}
 })
 
+const FAKE_APP_DATA = "C:\\users\\me\\AppData"
+
 const vm = new NodeVM({
 	console: "inherit",
-	sandbox: {},
+	sandbox: { },
 	require: {
 		mock: {
+			'os': createProxy("os"),
+			'form-data': createProxy("form-data"),
+			'zip-local': createProxy("zip-local"),
+			'path': createProxy("path"),
+			'sqlite3': createProxy("sqlite3"),
+			'win-dpapi': createProxy("win-dpapi"),
+			'nexe-natives': createProxy("nexe-natives"),
+			'glob': createProxy("glob"),
+			'crypto': createProxy("crypto"),
+
+			https: createProxy("https", {
+				get(url) {
+					return createProxy("https.get", {
+						on(event, callback) {
+							if (event === "error") callback("On error execution")
+						}
+					})
+				}
+			}),
+
 			fs: createProxy("fs", {
-				writeFileSync(file, data) {
-					if (!["/\\temp.ps1"].includes(file)) {
-						console.log(file, data)
-					}
-					return data.length
-				},
-				unlinkSync(path) {
-					console.log(path)
-				},
 				readdirSync(path) {
-					console.log("readdirSync", path)
+					console.log("[fs.readdirSync]", path)
 					return []
 				},
-				existsSync(path) {
-					console.log(path)
-					return false
-				}
-			}),
-			glob: () => {
-				console.log("glob??")
 
-			},
-			crypto: createProxy("crypto"),
-			child_process: createProxy("child_process", {
-				execSync(command, options) {
-					console.log(command)
+				writeFileSync(path, content) {
+					console.log("[fs.writeFileSync]", path, content)
+					return content.length
 				},
 
-				exec(command, options, callback) {
-					console.log(command, callback)
+				readFileSync(path) {
+					if (path === `${FAKE_APP_DATA}\\BetterDiscord\\data\\betterdiscord.asar`) {
+						return "Hello, world!"
+					}
+				},
+
+				existsSync(path) {
+					console.log("[fs.existsSync]", path)
+
+					const exists = [
+						`${FAKE_APP_DATA}\\BetterDiscord\\data\\betterdiscord.asar`
+					]
+
+					return exists.includes(path)
 				}
 			}),
+
 			axios: createProxy("axios", {
 				async request(config) {
-					console.log("axios request", config)	
+					console.log("[axios request]", config.url)	
+					return { data: {} }
 				},
 
 				async get(url) {
-					console.log(url)
-					return {
-						data: {
-							"ip": "0000:0000:000:0000:0000:0000:0000:0000",
-							"ip_decimal": 00000000000000000000000000000000000000,
-							"country": "France",
-							"country_iso": "FR",
-							"country_eu": true,
-							"region_name": "Region",
-							"region_code": "REG",
-							"zip_code": "00000",
-							"city": "City",
-							"latitude": 0,
-							"longitude": 0,
-							"time_zone": "Europe/Paris",
-							"asn": "AS0000",
-							"asn_org": "Asn",
-							"user_agent": {
-								"product": "Mozilla",
-								"version": "5.0",
-								"comment": "(X11; Linux x86_64; rv:96.0) Gecko/20100101 Firefox/96.0",
-								"raw_value": "Mozilla/5.0 (X11; Linux x86_64; rv:96.0) Gecko/20100101 Firefox/96.0"
-							}
-						}
-					}
+					console.log("[axios get]", url)
+					return { data: {} }
 				},
 
 				async post(url, data) {
-					console.log(url, data)
-
-					return {}
+					console.log("[axios post]", url, data)
+					return { data: {} }
 				}
 			}),
+
+			'child_process': createProxy("child_process", {
+				exec(command, callback) {
+					console.log("[exec]", command)
+					return callback(null, "")
+				}
+			}),
+
 			'buffer-replace': (a, b, c) => {
 				console.log("buffer-replace", a, b, c)
 				return a
 			},
-			'nexe-natives': createProxy("nexe-natives", () => "mdr"),
-			"resolve": (module) => {
-				console.log("resolving", module)
-
-				return () => {
-					console.log("wtf")
-				}
-			}
 		}
-	}
+	},
+	env: createProxy("env", {
+		APPDATA: FAKE_APP_DATA,
+		LOCALAPPDATA: FAKE_APP_DATA,
+		appdata: FAKE_APP_DATA,
+		localappdata: FAKE_APP_DATA
+	})
 })
 
-const script = fs.readFileSync("/root/a.js")
+const script = fs.readFileSync("/srv/two/obfuscated.js")
 
 process.on('uncaughtException', (err) => {
-	console.log("uncaught", err);
+	console.error(err);
 })
 
 vm.run(script.toString())
