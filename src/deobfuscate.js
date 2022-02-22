@@ -33,6 +33,27 @@ const phases = [
 			require("babel-plugin-transform-member-expression-literals"),
 		]
 	},
+	{
+		plugins: [
+			require("./babel-plugin/super-inliner-lookup.js"),
+		]
+	},
+	{
+		plugins: [
+			require("babel-plugin-minify-constant-folding"),
+		]
+	},
+	{
+		plugins: [
+			require("./babel-plugin/super-inliner-anonymous.js"),
+		]
+	},
+	{
+		plugins: [
+			require("babel-plugin-minify-constant-folding"),
+			require("babel-plugin-minify-dead-code-elimination")
+		]
+	},
 ]
 
 const code = phases.reduce((code, options) => {
